@@ -1,18 +1,25 @@
 # Імпорт Path для роботи з файловими шляхами
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # БАЗОВА ДИРЕКТОРІЯ ПРОЄКТУ
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv()
+
 # СЕКРЕТНИЙ КЛЮЧ
-SECRET_KEY = 'django-insecure-change-this-in-production-12345'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # РЕЖИМ ВІДЛАДКИ
-DEBUG = False
+DEBUG = os.getenv("DEBUG") == "True"
 
 # ДОЗВОЛЕНІ ХОСТИ
-# '*' означає, що сайт доступний з будь-якого домену (тільки для dev)
-ALLOWED_HOSTS = ['.onrender.com']
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '.onrender.com',
+]
 
 # ВСТАНОВЛЕНІ ДОДАТКИ
 INSTALLED_APPS = [
@@ -33,6 +40,7 @@ INSTALLED_APPS = [
 # MIDDLEWARE (ПРОМІЖНІ ШАРИ)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',        # безпека
+    'whitenoise.middleware.WhiteNoiseMiddleware', # обслуговування статичних файлів у продакшені
     'django.contrib.sessions.middleware.SessionMiddleware', # сесії
     'django.middleware.common.CommonMiddleware',            # загальна обробка запитів
     'django.middleware.csrf.CsrfViewMiddleware',            # CSRF захист
@@ -109,7 +117,13 @@ USE_TZ = True     # timezone підтримка
 STATIC_URL = '/static/'
 
 # локальні static файли (css, js, images)
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # MEDIA (ФАЙЛИ КОРИСТУВАЧІВ)
 MEDIA_URL = '/media/'
