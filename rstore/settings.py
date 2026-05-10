@@ -2,6 +2,9 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 # БАЗОВА ДИРЕКТОРІЯ ПРОЄКТУ
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,6 +38,9 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.orders',
     'apps.reviews',
+
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 # MIDDLEWARE (ПРОМІЖНІ ШАРИ)
@@ -125,9 +131,14 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# MEDIA (ФАЙЛИ КОРИСТУВАЧІВ)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# MEDIA
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
+    'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
+    'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # AUTO FIELD
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
