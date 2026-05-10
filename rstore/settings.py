@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
 
 # БАЗОВА ДИРЕКТОРІЯ ПРОЄКТУ
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -86,10 +87,7 @@ WSGI_APPLICATION = 'rstore.wsgi.application'
 
 # БАЗА ДАНИХ
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # SQLite (dev база)
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    "default": dj_database_url.parse(os.getenv("DATABASE_URL"))
 }
 
 # ВАЛІДАЦІЯ ПАРОЛІВ
