@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Заголовок сторінки у вкладці браузера #}
+{% block title %}Оформлення замовлення - RStore{% endblock %}
+
+{% block content %}
+
+{# Основний заголовок сторінки #}
+<h1 class="page-title">Оформлення замовлення</h1>
+
+<div class="checkout-layout">
+
+    {# БЛОК: СПИСОК ТОВАРІВ #}
+    <div class="checkout-items">
+
+        <h3>Ваше замовлення</h3>
+
+        {# Перелік товарів у замовленні #}
+        {% for item in items %}
+
+        <div class="checkout-item">
+
+            {# Назва товару + кількість #}
+            <span>
+                {{ item.product.name }} × {{ item.quantity }}
+
+                {# Варіація: розмір корпуса #}
+                {% if item.case_size %}
+                    ({{ item.case_size.label }})
+                {% endif %}
+
+                {# Варіація: розмір екрана #}
+                {% if item.screen_size %}
+                    ({{ item.screen_size.label }})
+                {% endif %}
+            </span>
+
+            {# Сума по позиції #}
+            <span>
+                {{ item.total_price }} ₴
+            </span>
+
+        </div>
+
+        {% endfor %}
+
+        {# ЗАГАЛЬНА СУМА #}
+        <div class="checkout-item checkout-item--total">
+            <strong>Загально:</strong>
+            <strong>{{ total }} ₴</strong>
+        </div>
+
+    </div>
+
+
+    {# ФОРМА ОФОРМЛЕННЯ #}
+    <form method="post" class="checkout-form">
+
+        {% csrf_token %}
+
+        <h3>Дані доставки</h3>
+
+        {# ІМ'Я ТА ПРІЗВИЩЕ #}
+        <label class="form-label">
+            Ім'я та прізвище
+
+            <input type="text"
+                   name="name"
+                   class="form-input"
+                   required
+                   placeholder="Іван Іванов"
+                   value="{{ user_data.first_name }} {% if user_data.last_name %}{{ user_data.last_name }}{% endif %}">
+        </label>
+
+
+        {# ТЕЛЕФОН #}
+        <label class="form-label">
+            Телефон
+
+            <input type="tel"
+                   name="phone"
+                   class="form-input"
+                   required
+                   placeholder="+38(0XX)XXX-XX-XX"
+                   value="{{ user_data.phone }}">
+        </label>
+
+
+        {# АДРЕСА ДОСТАВКИ #}
+        <label class="form-label">
+            Адреса доставки
+
+            <textarea name="address"
+                      class="form-input"
+                      rows="3"
+                      required
+                      placeholder="Місто, вулиця, будинок, квартира">{{ user_data.address }}</textarea>
+        </label>
+
+
+        {# КНОПКА ПІДТВЕРДЖЕННЯ #}
+        <button type="submit"
+                class="btn btn--primary btn--full btn--large">
+            Підтвердити замовлення
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}

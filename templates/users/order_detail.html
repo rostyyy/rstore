@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Замовлення #{{ order.id }} - RStore{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Головна</a> / <a href="{% url 'profile' %}">Профіль</a> / Замовлення #{{ order.id }}
+</div>
+
+<section class="profile-section">
+    <h3>Деталі замовлення #{{ order.id }}</h3>
+    <div class="order-card">
+        <div class="order-card__header">
+            <span class="order-card__id">Замовлення #{{ order.id }}</span>
+            <span class="order-status order-status--{{ order.status }}">{{ order.get_status_display }}</span>
+            <span class="order-card__date">{{ order.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <div class="order-card__meta">
+            <span><strong>Адреса доставки:</strong> {{ order.address|default:"Не вказано" }}</span>
+            <span><strong>Одержувач:</strong> {{ order.user.get_full_name|default:order.user.username }}</span>
+            <span><strong>Email:</strong> {{ order.user.email|default:"Не вказано" }}</span>
+        </div>
+        <div class="order-items">
+            {% for item in order.items.all %}
+            <div class="order-item">
+                <div class="order-item__image">
+                    {% if item.display_image %}
+                    <img src="{{ item.display_image.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <div class="no-image">📷</div>
+                    {% endif %}
+                </div>
+                <div class="order-item__info">
+                    <a href="{% url 'product_detail' item.product.slug %}" class="order-item__name">{{ item.product.name }}</a>
+                    <div class="order-item__meta">
+                        {% if item.color %}<span>Колір: {{ item.color.name }}</span>{% endif %}
+                        {% if item.memory %}<span>Пам'ять: {{ item.memory.label }}</span>{% endif %}
+                        {% if item.case_size %}<span>Розмір корпуса: {{ item.case_size.label }}</span>{% endif %}
+                        {% if item.screen_size %}<span>Діагональ: {{ item.screen_size.label }}</span>{% endif %}
+                        <span>Кількість: {{ item.quantity }}</span>
+                        <span>Ціна за шт: {{ item.price }} ₴</span>
+                    </div>
+                </div>
+                <div class="order-item__total">{{ item.total_price }} ₴</div>
+            </div>
+            {% empty %}
+            <p class="empty-text">Склад замовлення недоступний.</p>
+            {% endfor %}
+        </div>
+        <div class="order-card__total">Разом на замовлення: <strong>{{ order.total_price }} ₴</strong></div>
+    </div>
+    <a href="{% url 'profile' %}" class="btn btn--outline">Назад у профіль</a>
+</section>
+{% endblock %}

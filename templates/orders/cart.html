@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Заголовок сторінки у вкладці браузера #}
+{% block title %}Кошик - RStore{% endblock %}
+
+{% block content %}
+
+{# Основний заголовок сторінки #}
+<h1 class="page-title">Кошик</h1>
+
+{# Перевірка: чи є товари в кошику #}
+{% if items %}
+
+<div class="cart-layout">
+
+    {# СПИСОК ТОВАРІВ У КОШИКУ #}
+    <div class="cart-items">
+
+        {# Цикл по всіх позиціях кошика #}
+        {% for item in items %}
+
+        <div class="cart-item">
+
+            {# ЗОБРАЖЕННЯ ТОВАРУ #}
+            {% with item.cart_image as img %}
+
+                {# Якщо є зображення - показуємо його #}
+                {% if img %}
+                    <img src="{{ img.image.url }}" alt="{{ item.product.name }}" class="cart-item__img">
+                {% else %}
+                    {# fallback якщо зображення відсутнє #}
+                    <div class="no-image cart-item__img">📷</div>
+                {% endif %}
+
+            {% endwith %}
+
+            {# ІНФОРМАЦІЯ ПРО ТОВАР #}
+            <div class="cart-item__info">
+
+                {# Назва товару з переходом на сторінку продукту #}
+                <a href="{% url 'product_detail' item.product.slug %}" class="cart-item__name">
+                    {{ item.product.name }}
+                </a>
+
+                {# Колір (якщо вибраний) #}
+                {% if item.color %}
+                <span class="cart-item__color">
+                    <span class="color-dot color-dot--small"
+                          style="background:{{ item.color.hex_code }}"></span>
+                    {{ item.color.name }}
+                </span>
+                {% endif %}
+
+                {# Пам’ять (якщо вибрана) #}
+                {% if item.memory %}
+                <span class="cart-item__price">
+                    Пам'ять: {{ item.memory.label }}
+                </span>
+                {% endif %}
+
+                {# Розмір корпуса (якщо є) #}
+                {% if item.case_size %}
+                <span class="cart-item__price">
+                    Розмір корпуса: {{ item.case_size.label }}
+                </span>
+                {% endif %}
+
+                {# Діагональ екрана (якщо є) #}
+                {% if item.screen_size %}
+                <span class="cart-item__price">
+                    Діагональ: {{ item.screen_size.label }}
+                </span>
+                {% endif %}
+
+                {# Ціна за 1 одиницю #}
+                <span class="cart-item__price">
+                    {{ item.unit_price|default:item.product.price }} ₴ / шт.
+                </span>
+
+            </div>
+
+
+            {# КЕРУВАННЯ КІЛЬКІСТЮ #}
+            <div class="cart-item__controls">
+
+                {# Форма зміни кількості товару #}
+                <form method="post" action="{% url 'update_cart' item.id %}" class="cart-item__qty">
+
+                    {% csrf_token %}
+
+                    {# Зменшити кількість #}
+                    <button type="submit"
+                            name="quantity"
+                            value="{{ item.quantity|add:'-1' }}"
+                            class="qty-btn">−</button>
+
+                    {# Поточна кількість #}
+                    <span class="qty-value">{{ item.quantity }}</span>
+
+                    {# Збільшити кількість #}
+                    <button type="submit"
+                            name="quantity"
+                            value="{{ item.quantity|add:'1' }}"
+                            class="qty-btn">+</button>
+
+                </form>
+
+                {# Загальна сума по товару #}
+                <span class="cart-item__total">
+                    {{ item.total_price }} ₴
+                </span>
+
+                {# Видалення товару з кошика #}
+                <a href="{% url 'remove_from_cart' item.id %}"
+                   class="cart-item__remove"
+                   title="Видалити">✕</a>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    {# ПІДСУМОК ЗАМОВЛЕННЯ #}
+    <div class="cart-summary">
+
+        <h3>Разом</h3>
+
+        <div class="cart-summary__rows">
+
+            {# Кількість товарів #}
+            <div class="cart-summary__row">
+                <span>Товарів:</span>
+                <span>{{ items|length }} шт.</span>
+            </div>
+
+            {# Загальна сума #}
+            <div class="cart-summary__row cart-summary__row--total">
+                <span>Сума:</span>
+                <span class="cart-summary__total">{{ total }} ₴</span>
+            </div>
+
+        </div>
+
+        {# Перехід до оформлення замовлення #}
+        <a href="{% url 'checkout' %}"
+           class="btn btn--primary btn--full btn--large">
+            Оформити замовлення
+        </a>
+
+        {# Повернення до каталогу #}
+        <a href="{% url 'product_list' %}"
+           class="btn btn--outline btn--full"
+           style="margin-top:8px; display:flex; align-items:center; justify-content:center;">
+            Продовжити покупки
+        </a>
+
+    </div>
+
+</div>
+
+{# ПУСТИЙ КОШИК #}
+{% else %}
+
+<div class="empty-state">
+
+    <div class="empty-state__icon">🛒</div>
+
+    <h2>Кошик порожній</h2>
+
+    <p>Додайте товари до кошика</p>
+
+    <a href="{% url 'product_list' %}" class="btn btn--primary">
+        Перейти до каталогу
+    </a>
+
+</div>
+
+{% endif %}
+
+{% endblock %}

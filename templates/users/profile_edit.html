@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Редагувати профіль - RStore{% endblock %}
+
+{% block content %}
+<div class="profile-edit-layout">
+    <h2>Редагувати профіль</h2>
+    <form method="post" enctype="multipart/form-data" class="profile-edit-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_avatar">Аватар</label>
+            {{ form.avatar }}
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="Поточний аватар" style="max-width:100px;max-height:100px;display:block;margin-top:10px;">
+            {% endif %}
+        </div>
+        <div class="form-group">
+            <label for="id_first_name">Ім'я</label>
+            {{ form.first_name }}
+        </div>
+        <div class="form-group">
+            <label for="id_last_name">Прізвище</label>
+            {{ form.last_name }}
+        </div>
+        <div class="form-group">
+            <label for="id_email">Email</label>
+            {{ form.email }}
+        </div>
+        <div class="form-group">
+            <label for="id_phone">Телефон</label>
+            {{ form.phone }}
+        </div>
+        <div class="form-group">
+            <label for="id_address">Адреса доставки</label>
+            {{ form.address }}
+        </div>
+        <button type="submit" class="btn btn--primary">Зберегти</button>
+        <a href="{% url 'profile' %}" class="btn btn--outline">Скасувати</a>
+    </form>
+</div>
+{% endblock %}

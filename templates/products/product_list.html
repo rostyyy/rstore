@@ -1,0 +1,540 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Каталог - RStore{% endblock %}
+
+{% block content %}
+
+{# Mobile filter overlay #}
+<div class="filter-overlay" id="filter-overlay" onclick="closeFilterMobile()"></div>
+
+<div class="catalog-layout">
+
+    {# FILTER SIDEBAR #}
+    <aside class="filters-sidebar" id="filters-sidebar">
+        <form method="get" id="filter-form">
+            {% if request.GET.q %}
+                <input type="hidden" name="q" value="{{ request.GET.q }}">
+            {% endif %}
+
+            {# Header #}
+            <div class="filter-header">
+                <span class="filter-header__title">Фільтри</span>
+                <a href="{% url 'product_list' %}{% if request.GET.q %}?q={{ request.GET.q }}{% endif %}"
+                   class="filter-reset">Скинути все</a>
+            </div>
+
+            {# Категорія #}
+            <div class="filter-group open" id="fg-category">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-category')">
+                    <span class="filter-title">Категорія</span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <label class="filter-option">
+                        <input type="radio" name="category" value=""
+                            {% if not current_category %}checked{% endif %}
+                            onchange="this.form.submit()">
+                        <span class="filter-option__label">Усі категорії</span>
+                    </label>
+                    {% for cat in categories %}
+                    <label class="filter-option">
+                        <input type="radio" name="category" value="{{ cat.slug }}"
+                            {% if current_category == cat.slug %}checked{% endif %}
+                            onchange="this.form.submit()">
+                        <span class="filter-option__label">
+                            {{ cat.icon }} {{ cat.name }}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# Бренд #}
+            <div class="filter-group open" id="fg-brand">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-brand')">
+                    <span class="filter-title">
+                        Бренд
+                        {% if selected_brands %}
+                            <span class="filter-active-count">{{ selected_brands|length }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <div class="filter-search">
+                        <span class="filter-search__icon">🔍</span>
+                        <input type="text" placeholder="Пошук бренду..."
+                            oninput="filterBrands(this)" autocomplete="off">
+                    </div>
+                    <div class="filter-scrollable" id="brand-list">
+                        {% regroup brands by name.0|upper as brands_by_letter %}
+                        {% for group in brands_by_letter %}
+                        <div class="brand-letter-group" data-letter="{{ group.grouper }}">
+                            <div class="brand-letter">{{ group.grouper }}</div>
+                            {% for brand in group.list %}
+                            <label class="filter-option brand-option">
+                                <input type="checkbox" name="brand" value="{{ brand.id }}"
+                                    {% if brand.id|stringformat:"s" in selected_brands %}checked{% endif %}>
+                                <span class="filter-option__label">{{ brand.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {# Колір #}
+            {% if colors %}
+            <div class="filter-group" id="fg-color">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-color')">
+                    <span class="filter-title">
+                        Колір
+                        {% if selected_colors %}
+                            <span class="filter-active-count">{{ selected_colors|length }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <div class="filter-colors">
+                        {% for color in colors %}
+                        <label class="filter-color-item" title="{{ color.name }}">
+                            <input type="checkbox" name="color" value="{{ color.id }}"
+                                {% if color.id|stringformat:"s" in selected_colors %}checked{% endif %}>
+                            <span class="filter-color-swatch"
+                                  style="background: {{ color.hex_code }};"></span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Пам'ять #}
+            {% if memory_options %}
+            <div class="filter-group" id="fg-memory">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-memory')">
+                    <span class="filter-title">
+                        Пам'ять
+                        {% if selected_memories %}
+                            <span class="filter-active-count">{{ selected_memories|length }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <div class="filter-chips">
+                        {% for memory in memory_options %}
+                        <label class="filter-chip-item">
+                            <input type="checkbox" name="memory" value="{{ memory.id }}"
+                                {% if memory.id|stringformat:"s" in selected_memories %}checked{% endif %}>
+                            <span class="filter-chip">{{ memory.label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Ціна #}
+            <div class="filter-group" id="fg-price">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-price')">
+                    <span class="filter-title">Ціна, ₴</span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <div class="price-range">
+                        <input type="number" name="min_price" placeholder="Від"
+                               value="{{ min_price }}" class="price-input"
+                               id="price-min" min="0">
+                        <span class="price-range-sep">—</span>
+                        <input type="number" name="max_price" placeholder="До"
+                               value="{{ max_price }}" class="price-input"
+                               id="price-max" min="0">
+                    </div>
+                    {% if min_price or max_price %}
+                    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;font-family:var(--font-mono)">
+                        {% if min_price %}від {{ min_price }} ₴{% endif %}
+                        {% if min_price and max_price %} — {% endif %}
+                        {% if max_price %}до {{ max_price }} ₴{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Рейтинг #}
+            <div class="filter-group" id="fg-rating">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-rating')">
+                    <span class="filter-title">Рейтинг</span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <div class="rating-options">
+                        <label class="rating-option">
+                            <input type="radio" name="min_rating" value=""
+                                   {% if not min_rating %}checked{% endif %}>
+                            <span class="rating-stars">
+                                {% for i in "12345" %}<span class="rating-star filled">★</span>{% endfor %}
+                            </span>
+                            <span class="rating-label">Будь-який</span>
+                        </label>
+                        <label class="rating-option">
+                            <input type="radio" name="min_rating" value="4.5"
+                                   {% if min_rating == '4.5' %}checked{% endif %}>
+                            <span class="rating-stars">
+                                <span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span>
+                            </span>
+                            <span class="rating-label">4.5+</span>
+                        </label>
+                        <label class="rating-option">
+                            <input type="radio" name="min_rating" value="4.0"
+                                   {% if min_rating == '4.0' %}checked{% endif %}>
+                            <span class="rating-stars">
+                                <span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star">★</span>
+                            </span>
+                            <span class="rating-label">4.0+</span>
+                        </label>
+                        <label class="rating-option">
+                            <input type="radio" name="min_rating" value="3.5"
+                                   {% if min_rating == '3.5' %}checked{% endif %}>
+                            <span class="rating-stars">
+                                <span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star">★</span>
+                            </span>
+                            <span class="rating-label">3.5+</span>
+                        </label>
+                        <label class="rating-option">
+                            <input type="radio" name="min_rating" value="3.0"
+                                   {% if min_rating == '3.0' %}checked{% endif %}>
+                            <span class="rating-stars">
+                                <span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star filled">★</span><span class="rating-star">★</span><span class="rating-star">★</span>
+                            </span>
+                            <span class="rating-label">3.0+</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {# Додаткові параметри #}
+            <div class="filter-group" id="fg-extra">
+                <button type="button" class="filter-group__toggle" onclick="toggleGroup('fg-extra')">
+                    <span class="filter-title">Додатково</span>
+                    <span class="filter-group__arrow">▼</span>
+                </button>
+                <div class="filter-group__body">
+                    <label class="filter-toggle">
+                        <span>Тільки у наявності</span>
+                        <input type="checkbox" name="in_stock" value="1"
+                               {% if in_stock_only %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        <span class="toggle-switch"></span>
+                    </label>
+                    <label class="filter-toggle" style="margin-top:6px">
+                        <span>Зі знижкою</span>
+                        <input type="checkbox" name="discounts_only" value="1"
+                               {% if discounts_only %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+            </div>
+
+            {# Footer buttons #}
+            <div class="filter-footer">
+                <button type="submit" class="btn btn--primary btn--full">
+                    Застосувати фільтри
+                </button>
+            </div>
+        </form>
+    </aside>
+
+    {# CATALOG MAIN #}
+    <div class="catalog-main">
+
+        {# Mobile filter button + header #}
+        <div class="catalog-header">
+            <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap">
+                <button class="filter-mobile-toggle" onclick="openFilterMobile()">
+                    ⚙️ Фільтри
+                    {% if selected_brands or selected_colors or selected_memories or min_price or max_price or min_rating or in_stock_only or discounts_only %}
+                        <span class="filter-active-count">!</span>
+                    {% endif %}
+                </button>
+                <h1 class="catalog-title">
+                    {% if search_query %}
+                        «{{ search_query }}»
+                    {% elif current_category %}
+                        {% for cat in categories %}{% if cat.slug == current_category %}{{ cat.icon }} {{ cat.name }}{% endif %}{% endfor %}
+                    {% else %}
+                        Всі товари
+                    {% endif %}
+                    <span class="catalog-count">{{ products|length }}</span>
+                </h1>
+            </div>
+            <div class="sort-control">
+                <label style="white-space:nowrap">Сортування:</label>
+                <select onchange="applySort(this.value)" id="sort-select" title="Сортування">
+                    <option value="price_asc"  {% if current_sort == 'price_asc'  %}selected{% endif %}>Ціна ↑</option>
+                    <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Ціна ↓</option>
+                    <option value="rating"     {% if current_sort == 'rating'     %}selected{% endif %}>Рейтинг</option>
+                    <option value="name_asc"   {% if current_sort == 'name_asc'   %}selected{% endif %}>Назва А–Я</option>
+                    <option value="name_desc"  {% if current_sort == 'name_desc'  %}selected{% endif %}>Назва Я–А</option>
+                </select>
+            </div>
+        </div>
+
+        {# Active filters tags #}
+        {% if selected_brands or selected_colors or selected_memories or min_price or max_price or min_rating or in_stock_only or discounts_only or current_category %}
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--space-4)">
+            {% if current_category %}
+                {% for cat in categories %}{% if cat.slug == current_category %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'category' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
+                   class="active-filter-tag">{{ cat.name }} ✕</a>
+                {% endif %}{% endfor %}
+            {% endif %}
+            {% if min_price %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'min_price' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
+                   class="active-filter-tag">від {{ min_price }} ₴ ✕</a>
+            {% endif %}
+            {% if max_price %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'max_price' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
+                   class="active-filter-tag">до {{ max_price }} ₴ ✕</a>
+            {% endif %}
+            {% if min_rating %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'min_rating' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
+                   class="active-filter-tag">★ {{ min_rating }}+ ✕</a>
+            {% endif %}
+            {% if in_stock_only %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'in_stock' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
+                   class="active-filter-tag">У наявності ✕</a>
+            {% endif %}
+            {% if discounts_only %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'discounts_only' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}"
+                   class="active-filter-tag">Зі знижкою ✕</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Product grid #}
+        {% if products %}
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card" data-product-id="{{ product.id }}">
+                <span class="product-card__badge"
+                      {% if not product.discount_percent %}style="display:none;"{% endif %}>
+                    -{{ product.discount_percent }}%
+                </span>
+
+                <a href="{% url 'product_detail' product.slug %}" class="product-card__img-wrap">
+                    {% with product.main_image as img %}
+                        {% if img %}
+                            <img src="{{ img.image.url }}" alt="{{ product.name }}"
+                                 loading="lazy" class="product-main-img">
+                        {% else %}
+                            <div class="no-image">📷</div>
+                        {% endif %}
+                    {% endwith %}
+                </a>
+
+                <div class="product-card__body">
+                    <p class="product-card__brand">{{ product.brand.name }}</p>
+                    <a href="{% url 'product_detail' product.slug %}" class="product-card__name">
+                        {{ product.name }}
+                    </a>
+                    <div class="product-card__rating">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= product.rating %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="product-card__price-row">
+                        <span class="product-card__price">{{ product.price }} ₴</span>
+                        {% if product.old_price %}
+                        <span class="product-card__old-price">{{ product.old_price }} ₴</span>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" action="{% url 'add_to_cart' product.id %}">
+                        {% csrf_token %}
+                        {% if product.colors.all %}
+                        <div class="color-picker">
+                            {% for color in product.colors.all %}
+                            <span class="color-dot" title="{{ color.name }}"
+                                  style="background: {{ color.hex_code }}"
+                                  data-color-id="{{ color.id }}"
+                                  {% for img in product.images.all %}
+                                      {% if img.color_id == color.id %}data-img-url="{{ img.image.url }}"{% endif %}
+                                  {% endfor %}
+                            ></span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <input type="hidden" name="color_id" class="selected-color" value="">
+
+                        {% if product.memory_choices %}
+                        <div class="memory-picker memory-picker--compact">
+                            {% for memory in product.memory_choices %}
+                            <button type="button" class="memory-btn"
+                                    data-memory-id="{{ memory.id }}"
+                                    data-price="{{ memory.price }}"
+                                    data-old-price="{{ memory.old_price|default:'' }}">
+                                {{ memory.label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <input type="hidden" name="memory_id" class="selected-memory" value="">
+
+                        <button type="submit" class="btn btn--primary btn--full" style="margin-top:var(--space-3)">
+                            🛒 У кошик
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state__icon">🔍</div>
+            <h2>Нічого не знайдено</h2>
+            <p>Спробуйте змінити фільтри або пошуковий запит</p>
+            <a href="{% url 'product_list' %}" class="btn btn--primary">Всі товари</a>
+        </div>
+        {% endif %}
+
+        {# Pagination #}
+        {% if paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="Сторінки">
+            <ul class="pagination__list">
+                {% if page_obj.has_previous %}
+                <li class="pagination__item">
+                    <a class="pagination__link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">‹</a>
+                </li>
+                {% else %}
+                <li class="pagination__item pagination__item--disabled"><span class="pagination__link">‹</span></li>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                    {% if num == page_obj.number %}
+                        <li class="pagination__item pagination__item--active"><span class="pagination__link">{{ num }}</span></li>
+                    {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+                        <li class="pagination__item"><a class="pagination__link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a></li>
+                    {% elif num == 1 or num == paginator.num_pages %}
+                        <li class="pagination__item"><a class="pagination__link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a></li>
+                    {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                        <li class="pagination__item"><span class="pagination__link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="pagination__item">
+                    <a class="pagination__link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">›</a>
+                </li>
+                {% else %}
+                <li class="pagination__item pagination__item--disabled"><span class="pagination__link">›</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Sort */
+function applySort(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('sort', value);
+    window.location.href = url.toString();
+}
+
+/* Toggle filter group */
+function toggleGroup(id) {
+    const group = document.getElementById(id);
+    group.classList.toggle('open');
+}
+
+/* Brand search */
+function filterBrands(input) {
+    const q = input.value.toLowerCase();
+    document.querySelectorAll('.brand-letter-group').forEach(group => {
+        let anyVisible = false;
+        group.querySelectorAll('.brand-option').forEach(opt => {
+            const match = opt.textContent.toLowerCase().includes(q);
+            opt.style.display = match ? '' : 'none';
+            if (match) anyVisible = true;
+        });
+        // Сховати заголовок літери якщо немає збігів
+        group.style.display = anyVisible ? '' : 'none';
+    });
+}
+
+/* Mobile filter */
+function openFilterMobile() {
+    document.getElementById('filters-sidebar').classList.add('mobile-open');
+    document.getElementById('filter-overlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFilterMobile() {
+    document.getElementById('filters-sidebar').classList.remove('mobile-open');
+    document.getElementById('filter-overlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+/* Product card interactions */
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.product-card').forEach(function(card) {
+        const img = card.querySelector('.product-main-img');
+
+        /* Color dot - image swap */
+        card.querySelectorAll('.color-dot').forEach(function(dot) {
+            dot.addEventListener('click', function() {
+                const url = dot.getAttribute('data-img-url');
+                if (url && img) img.src = url;
+            });
+        });
+
+        /* Memory button - price update */
+        const memoryButtons = card.querySelectorAll('.memory-btn');
+        const selectedMemoryInput = card.querySelector('.selected-memory');
+        const priceEl = card.querySelector('.product-card__price');
+        const oldPriceEl = card.querySelector('.product-card__old-price');
+        const discountBadgeEl = card.querySelector('.product-card__badge');
+
+        function applyMemoryPrice(button) {
+            if (!button || !priceEl) return;
+            const price = button.dataset.price || '';
+            const oldPrice = button.dataset.oldPrice || '';
+            if (selectedMemoryInput) selectedMemoryInput.value = button.dataset.memoryId || '';
+            memoryButtons.forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            priceEl.textContent = `${price} ₴`;
+            if (oldPriceEl) {
+                if (oldPrice) {
+                    oldPriceEl.textContent = `${oldPrice} ₴`;
+                    oldPriceEl.style.display = '';
+                    if (discountBadgeEl) {
+                        const discount = Math.round((1 - parseFloat(price) / parseFloat(oldPrice)) * 100);
+                        if (discount > 0) {
+                            discountBadgeEl.textContent = `-${discount}%`;
+                            discountBadgeEl.style.display = '';
+                        } else {
+                            discountBadgeEl.style.display = 'none';
+                        }
+                    }
+                } else {
+                    oldPriceEl.style.display = 'none';
+                    if (discountBadgeEl) discountBadgeEl.style.display = 'none';
+                }
+            }
+        }
+
+        if (memoryButtons.length > 0) {
+            memoryButtons.forEach(b => b.addEventListener('click', () => applyMemoryPrice(b)));
+            applyMemoryPrice(memoryButtons[0]);
+        }
+    });
+});
+</script>
+{% endblock %}

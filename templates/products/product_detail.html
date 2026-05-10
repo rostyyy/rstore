@@ -1,0 +1,580 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ product.name }} - RStore{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Головна</a> / <a href="{% url 'product_list' %}?category={{ product.category.slug }}">{{ product.category.name }}</a> / {{ product.name }}
+</div>
+
+<div class="product-detail">
+    <div class="product-detail__gallery">
+        <div class="gallery-main" id="main-img">
+            <button type="button" class="gallery-arrow gallery-arrow--left" id="gallery-prev" aria-label="Попереднє фото">‹</button>
+            {% with product.main_image as img %}
+                {% if img %}
+                    <img src="{{ img.image.url }}" alt="{{ product.name }}" id="main-image">
+                {% else %}
+                    <div class="no-image-large">📷</div>
+                {% endif %}
+            {% endwith %}
+            <button type="button" class="gallery-arrow gallery-arrow--right" id="gallery-next" aria-label="Наступне фото">›</button>
+        </div>
+        {% if images.count > 1 %}
+        <div class="gallery-thumbs">
+            {% for img in images %}
+            <img src="{{ img.image.url }}" alt="{{ product.name }}"
+                 class="gallery-thumb {% if img.is_main %}active{% endif %}"
+                 onclick="document.getElementById('main-image').src=this.src; document.querySelectorAll('.gallery-thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active')">
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="product-detail__info">
+        <p class="product-detail__brand">{{ product.brand.name }}</p>
+        <h1 class="product-detail__name">{{ product.name }}</h1>
+
+        <div class="product-detail__rating">
+            {% for i in "12345" %}
+                {% if forloop.counter <= product.rating %}★{% else %}☆{% endif %}
+            {% endfor %}
+            <span class="rating-count">({{ reviews|length }} відгуків)</span>
+        </div>
+
+        <div class="product-detail__price-block">
+            <span class="product-detail__price" id="detail-price">{{ product.price }} ₴</span>
+            <span class="product-detail__old-price" id="detail-old-price" {% if not product.old_price %}style="display:none;"{% endif %}>
+                {{ product.old_price|default:'' }}{% if product.old_price %} ₴{% endif %}
+            </span>
+            <span class="product-detail__discount" id="detail-discount" {% if not product.discount_percent %}style="display:none;"{% endif %}>
+                -{{ product.discount_percent }}%
+            </span>
+        </div>
+
+        <form method="post" action="{% url 'add_to_cart' product.id %}" class="product-detail__form">
+            {% csrf_token %}
+
+            {% if product.colors.all %}
+            <div class="detail-color-picker">
+                <p class="detail-color-label">
+                    Колір: <span id="color-name">
+                        {% if product.colors.all %}
+                            {{ product.colors.all.0.name }}
+                        {% else %}
+                            не вказан
+                        {% endif %}
+                    </span>
+                </p>
+                <div class="color-picker color-picker--large">
+                    {% for color in product.colors.all %}
+                    <span class="color-dot color-dot--large"
+                        title="{{ color.name }}"
+                        style="background: {{ color.hex_code }}"
+                        data-color-id="{{ color.id }}"
+                        data-color-name="{{ color.name }}">
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <input type="hidden" name="color_id" class="selected-color" value="">
+            {% if memory_choices %}
+            <div class="detail-memory-picker">
+                <p class="detail-color-label">Внутрішня пам'ять:</p>
+                <div class="memory-picker">
+                    {% for memory in memory_choices %}
+                    <button
+                        type="button"
+                        class="memory-btn"
+                        data-memory-id="{{ memory.id }}"
+                        data-price="{{ memory.price }}"
+                        data-old-price="{{ memory.old_price|default:'' }}"
+                    >{{ memory.label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <input type="hidden" name="memory_id" id="detail-memory-id" value="">
+            {% if case_size_choices %}
+            <div class="detail-memory-picker">
+                <p class="detail-color-label">Розмір корпуса:</p>
+                <div class="memory-picker">
+                    {% for size in case_size_choices %}
+                    <button
+                        type="button"
+                        class="case-size-btn"
+                        data-case-size-id="{{ size.id }}"
+                        data-price="{{ size.price }}"
+                        data-old-price="{{ size.old_price|default:'' }}"
+                    >{{ size.label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <input type="hidden" name="case_size_id" id="detail-case-size-id" value="">
+            {% if screen_size_choices %}
+            <div class="detail-memory-picker">
+                <p class="detail-color-label">Діагональ екрана:</p>
+                <div class="memory-picker">
+                    {% for size in screen_size_choices %}
+                    <button
+                        type="button"
+                        class="screen-size-btn"
+                        data-screen-size-id="{{ size.id }}"
+                        data-price="{{ size.price }}"
+                        data-old-price="{{ size.old_price|default:'' }}"
+                    >{{ size.label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <input type="hidden" name="screen_size_id" id="detail-screen-size-id" value="">
+
+            <div class="product-detail__actions">
+                <button type="submit" class="btn btn--primary btn--large">
+                    🛒 Додати до кошику
+                </button>
+                {% if user.is_authenticated %}
+                <a
+                    href="{% url 'wishlist_toggle' product.id %}"
+                    class="btn btn--outline btn--large"
+                    id="wishlist-toggle-btn"
+                    data-base-url="{% url 'wishlist_toggle' product.id %}"
+                    data-favorite-keys='{{ wishlist_combinations|join:"," }}'
+                >♡ У вибране</a>
+                {% endif %}
+            </div>
+        </form>
+
+        {% if product.description %}
+        <div class="product-detail__desc">
+            <h3>Опис</h3>
+            <p>{{ product.description }}</p>
+        </div>
+        {% endif %}
+
+        {% if specs %}
+        <div class="product-detail__specs">
+            <h3>Характеристики</h3>
+            <table class="specs-table">
+                {% for spec in specs %}
+                <tr>
+                    <td class="spec-key">{{ spec.key }}</td>
+                    <td class="spec-value">{{ spec.value }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<section class="reviews-section">
+    <h2>Відгуки ({{ reviews|length }})</h2>
+
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'add_review' product.id %}" class="review-form">
+        {% csrf_token %}
+        <div class="review-form__rating">
+            <label>Оцінка:</label>
+            <select name="rating" class="form-input" title="Оцінка відгуку">
+                {% for i in "54321" %}
+                <option value="{{ i }}">{{ i }} ★</option>
+                {% endfor %}
+            </select>
+        </div>
+        <textarea name="text" class="form-input review-textarea" placeholder="Ваш відгук..."></textarea>
+        <textarea name="pros" class="form-input review-textarea" placeholder="Плюси товару (необов'язково)"></textarea>
+        <textarea name="cons" class="form-input review-textarea" placeholder="Мінуси товару (необов'язково)"></textarea>
+        <button type="submit" class="btn btn--primary">Відправити відгук</button>
+    </form>
+    {% else %}
+    <p class="login-prompt"><a href="{% url 'login' %}">Увійдіть</a>, щоб залишити відгук.</p>
+    {% endif %}
+
+    {% if reviews %}
+        {% for review in reviews %}
+        <div class="review-card">
+            <div class="review-card__header">
+                <strong>{{ review.user.username }}</strong>
+                <span class="review-rating">
+                    {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+                </span>
+                <span class="review-date">{{ review.created_at|date:"d.m.Y" }}</span>
+            </div>
+            <p>{{ review.text }}</p>
+            {% if review.pros %}
+            <p><strong>Плюси:</strong> {{ review.pros }}</p>
+            {% endif %}
+            {% if review.cons %}
+            <p><strong>Мінуси:</strong> {{ review.cons }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="no-reviews">Відгуків поки немає. Будьте першим!</p>
+    {% endif %}
+</section>
+
+{% if related %}
+<section class="related-section">
+    <h2>Схожі товари</h2>
+    <div class="product-grid product-grid--small">
+        {% for p in related %}
+        <div class="product-card">
+            <a href="{% url 'product_detail' p.slug %}" class="product-card__img-wrap">
+                {% with p.main_image as img %}
+                    {% if img %}<img src="{{ img.image.url }}" alt="{{ p.name }}" loading="lazy">
+                    {% else %}<div class="no-image">📷</div>{% endif %}
+                {% endwith %}
+            </a>
+            <div class="product-card__body">
+                <a href="{% url 'product_detail' p.slug %}" class="product-card__name">{{ p.name }}</a>
+                <span class="product-card__price">{{ p.price }} ₴</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if recently_viewed %}
+<section class="related-section">
+    <h2>Ви нещодавно дивилися</h2>
+    <div class="product-grid product-grid--small">
+        {% for p in recently_viewed %}
+        <div class="product-card">
+            <a href="{% url 'product_detail' p.slug %}" class="product-card__img-wrap">
+                {% with p.main_image as img %}
+                    {% if img %}<img src="{{ img.image.url }}" alt="{{ p.name }}" loading="lazy">
+                    {% else %}<div class="no-image">📷</div>{% endif %}
+                {% endwith %}
+            </a>
+            <div class="product-card__body">
+                <a href="{% url 'product_detail' p.slug %}" class="product-card__name">{{ p.name }}</a>
+                <span class="product-card__price">{{ p.price }} ₴</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{{ images_by_color|json_script:"images-by-color-data" }}
+{{ all_image_urls|json_script:"all-images-data" }}
+{% block extra_js %}
+<script>
+// Чекаємо, поки повністю завантажиться DOM
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ГОЛОВНІ ЕЛЕМЕНТИ СТОРІНКИ
+    const mainImage = document.getElementById('main-image'); // головне зображення товару
+    const thumbsContainer = document.querySelector('.gallery-thumbs'); // контейнер мініатюр
+    const colorNameEl = document.getElementById('color-name'); // назва кольору
+    const colorInput = document.querySelector('.selected-color'); // приховане поле кольору
+
+    // кнопки характеристик
+    const memoryButtons = document.querySelectorAll('.memory-btn');
+    const memoryInput = document.getElementById('detail-memory-id');
+
+    const caseSizeButtons = document.querySelectorAll('.case-size-btn');
+    const caseSizeInput = document.getElementById('detail-case-size-id');
+
+    const screenSizeButtons = document.querySelectorAll('.screen-size-btn');
+    const screenSizeInput = document.getElementById('detail-screen-size-id');
+
+    // блоки ціни
+    const priceEl = document.getElementById('detail-price');
+    const oldPriceEl = document.getElementById('detail-old-price');
+    const discountEl = document.getElementById('detail-discount');
+
+    // кольори та кнопки
+    const colors = document.querySelectorAll('.color-dot');
+
+    // навігація галереї
+    const galleryPrev = document.getElementById('gallery-prev');
+    const galleryNext = document.getElementById('gallery-next');
+
+    // wishlist кнопка
+    const wishlistBtn = document.getElementById('wishlist-toggle-btn');
+
+    // стан галереї
+    let activeImages = [];
+    let activeImageIndex = 0;
+
+    // дані з backend (Django JSON)
+    const imagesByColor = JSON.parse(document.getElementById('images-by-color-data')?.textContent || '{}');
+    const allImages = JSON.parse(document.getElementById('all-images-data')?.textContent || '[]');
+
+    // РОБОТА З МІНІАТЮРАМИ
+    function attachThumbHandlers() {
+        const thumbs = Array.from(document.querySelectorAll('.gallery-thumb'));
+
+        thumbs.forEach((thumb, index) => {
+            thumb.addEventListener('click', function () {
+                if (!mainImage) return;
+
+                // змінюємо головне фото
+                mainImage.src = thumb.src;
+                activeImageIndex = index;
+
+                // підсвічування активної мініатюри
+                thumbs.forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+            });
+        });
+    }
+
+    // встановлення фото по індексу (для стрілок)
+    function setGalleryImageByIndex(index) {
+        if (!mainImage || activeImages.length === 0) return;
+
+        // циклічний перехід
+        if (index < 0) index = activeImages.length - 1;
+        if (index >= activeImages.length) index = 0;
+
+        activeImageIndex = index;
+        mainImage.src = activeImages[activeImageIndex];
+
+        // оновлення активної мініатюри
+        const thumbs = document.querySelectorAll('.gallery-thumb');
+        thumbs.forEach((t, idx) => t.classList.toggle('active', idx === activeImageIndex));
+    }
+
+    // WISHLIST
+    function syncWishlistButton(colorId, memoryId) {
+        if (!wishlistBtn) return;
+
+        // формуємо ключ комбінації товару
+        const key = `${colorId || ''}:${memoryId || ''}`;
+
+        // список обраних з data-атрибуту
+        const favoriteKeys = (wishlistBtn.dataset.favoriteKeys || '').split(',').filter(Boolean);
+
+        const isFavorite = favoriteKeys.includes(key);
+
+        // змінюємо текст кнопки
+        wishlistBtn.textContent = isFavorite
+            ? '♥ Видалити з обраних'
+            : '♡ Додати до обраних';
+
+        // формуємо URL з параметрами
+        const url = new URL(wishlistBtn.dataset.baseUrl, window.location.origin);
+
+        if (colorId) url.searchParams.set('color_id', colorId);
+        if (memoryId) url.searchParams.set('memory_id', memoryId);
+
+        wishlistBtn.href = url.pathname + url.search;
+    }
+
+    // отримання вибраних значень
+    function getSelectedMemoryId() {
+        return memoryInput ? (memoryInput.value || '') : '';
+    }
+
+    function getSelectedColorId() {
+        return colorInput ? (colorInput.value || '') : '';
+    }
+
+    // ЗМІНА КОЛЬОРУ
+    function changeColor(colorId, colorName) {
+        if (colorNameEl) colorNameEl.textContent = colorName;
+        if (colorInput) colorInput.value = colorId;
+
+        const imgs = imagesByColor[colorId];
+
+        if (!imgs || imgs.length === 0) return;
+
+        activeImages = imgs;
+        activeImageIndex = 0;
+
+        // головне зображення
+        if (mainImage) {
+            mainImage.src = imgs[0];
+        }
+
+        // перерендер мініатюр
+        if (thumbsContainer) {
+            thumbsContainer.innerHTML = '';
+
+            imgs.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'gallery-thumb' + (index === 0 ? ' active' : '');
+
+                thumbsContainer.appendChild(img);
+            });
+
+            attachThumbHandlers();
+        }
+
+        // активний колір
+        colors.forEach(c => c.classList.remove('active'));
+        const active = document.querySelector(`[data-color-id="${colorId}"]`);
+        if (active) active.classList.add('active');
+
+        syncWishlistButton(colorId, getSelectedMemoryId());
+    }
+
+    // клік по кольорах
+    colors.forEach(dot => {
+        dot.addEventListener('click', function () {
+            changeColor(this.dataset.colorId, this.dataset.colorName);
+        });
+    });
+
+    // стартовий колір
+    if (colors.length > 0) {
+        const first = colors[0];
+        changeColor(first.dataset.colorId, first.dataset.colorName);
+    }
+
+    // MEMORY
+    function applyMemoryPrice(button) {
+        if (!button || !priceEl) return;
+
+        const memoryId = button.dataset.memoryId || '';
+
+        if (memoryInput) {
+            memoryInput.value = memoryId;
+        }
+
+        memoryButtons.forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+
+        recalcPrice();
+        syncWishlistButton(getSelectedColorId(), memoryId);
+    }
+
+    // рендер ціни
+    function renderPrice(price, oldPrice) {
+        if (!priceEl) return;
+
+        priceEl.textContent = `${price} ₴`;
+
+        if (oldPriceEl && discountEl) {
+            if (oldPrice) {
+                oldPriceEl.textContent = `${oldPrice} ₴`;
+                oldPriceEl.style.display = '';
+
+                const oldP = parseFloat(oldPrice);
+                const currentP = parseFloat(price);
+
+                if (oldP > currentP) {
+                    const discount = Math.round((1 - currentP / oldP) * 100);
+                    discountEl.textContent = `-${discount}%`;
+                    discountEl.style.display = '';
+                } else {
+                    discountEl.style.display = 'none';
+                }
+            } else {
+                oldPriceEl.style.display = 'none';
+                discountEl.style.display = 'none';
+            }
+        }
+    }
+
+    // активні кнопки
+    function getActiveMemoryButton() {
+        return document.querySelector('.memory-btn.active');
+    }
+
+    function getActiveCaseSizeButton() {
+        return document.querySelector('.case-size-btn.active');
+    }
+
+    function getActiveScreenSizeButton() {
+        return document.querySelector('.screen-size-btn.active');
+    }
+
+    // перерахунок ціни
+    function recalcPrice() {
+        const activeScreenSize = getActiveScreenSizeButton();
+        const activeCaseSize = getActiveCaseSizeButton();
+        const activeMemory = getActiveMemoryButton();
+
+        const sourceBtn = activeScreenSize || activeCaseSize || activeMemory;
+
+        const price = sourceBtn?.dataset.price || '{{ product.price }}';
+        const oldPrice = sourceBtn?.dataset.oldPrice || '';
+
+        renderPrice(price, oldPrice);
+    }
+
+    // MEMORY BUTTONS
+    if (memoryButtons.length > 0 && priceEl) {
+        memoryButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                applyMemoryPrice(button);
+            });
+        });
+
+        applyMemoryPrice(memoryButtons[0]);
+    }
+
+    // CASE SIZE
+    if (caseSizeButtons.length > 0) {
+        caseSizeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                caseSizeButtons.forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+
+                if (caseSizeInput) {
+                    caseSizeInput.value = button.dataset.caseSizeId || '';
+                }
+
+                recalcPrice();
+            });
+        });
+
+        caseSizeButtons[0].click();
+    }
+
+    // SCREEN SIZE
+    if (screenSizeButtons.length > 0) {
+        screenSizeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                screenSizeButtons.forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+
+                if (screenSizeInput) {
+                    screenSizeInput.value = button.dataset.screenSizeId || '';
+                }
+
+                recalcPrice();
+            });
+        });
+
+        screenSizeButtons[0].click();
+    }
+
+    // fallback для галереї без кольорів
+    if (thumbsContainer && !Object.keys(imagesByColor).length) {
+        activeImages = Array.from(document.querySelectorAll('.gallery-thumb')).map(t => t.src);
+        attachThumbHandlers();
+    }
+
+    if (!activeImages.length && allImages.length) {
+        activeImages = allImages;
+    }
+
+    // стрілки галереї
+    if (galleryPrev) {
+        galleryPrev.addEventListener('click', function () {
+            setGalleryImageByIndex(activeImageIndex - 1);
+        });
+    }
+
+    if (galleryNext) {
+        galleryNext.addEventListener('click', function () {
+            setGalleryImageByIndex(activeImageIndex + 1);
+        });
+    }
+
+    // початковий стан wishlist
+    syncWishlistButton(getSelectedColorId(), getSelectedMemoryId());
+
+});
+</script>
+{% endblock %}
+{% endblock %}

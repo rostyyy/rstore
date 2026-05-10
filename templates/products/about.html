@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Заголовок сторінки у вкладці браузера #}
+{% block title %}Про нас - RStore{% endblock %}
+
+
+{% block content %}
+
+{# ОСНОВНА СТОРІНКА "ПРО НАС" #}
+<div class="about-page">
+
+
+    {# HERO БЛОК (шапка сторінки) #}
+    <div class="about-hero">
+
+        {# Логотип магазину #}
+        <img src="{% static 'images/logo.png' %}"
+             class="logo-img about-hero__logo"
+             alt="RStore Logo">
+
+        {# Заголовок сторінки #}
+        <h1 class="about-hero__title">Про нас</h1>
+
+        {# Короткий опис компанії #}
+        <p class="about-hero__sub">
+            Ваш надійний магазин електроніки з широким вибором гаджетів,
+            аксесуарів та техніки для сучасного життя.
+        </p>
+
+    </div>
+
+
+    {# БЛОК ПЕРЕВАГ КОМПАНІЇ #}
+    <div class="about-grid">
+
+        {# Місія компанії #}
+        <div class="about-card">
+            <div class="about-card__icon">🎯</div>
+            <h3>Наша місія</h3>
+            <p>
+                Надавати доступ до найкращої електроніки за чесними цінами
+                з швидкою доставкою по всій Україні.
+            </p>
+        </div>
+
+        {# Швидка доставка #}
+        <div class="about-card">
+            <div class="about-card__icon">⚡</div>
+            <h3>Швидка доставка</h3>
+            <p>
+                Відправляємо замовлення протягом 24 годин.
+                Доставка по Україні від 1 до 3 робочих днів.
+            </p>
+        </div>
+
+        {# Гарантія #}
+        <div class="about-card">
+            <div class="about-card__icon">🛡️</div>
+            <h3>Гарантія якості</h3>
+            <p>
+                Всі товари сертифіковані та мають офіційну гарантію виробника.
+                Повернення протягом 14 днів.
+            </p>
+        </div>
+
+    </div>
+
+
+    {# КОНТАКТНА ІНФОРМАЦІЯ #}
+    <div class="about-contact">
+
+        <h2 class="about-contact__title">
+            Контактна інформація
+        </h2>
+
+        <div class="about-contact__grid">
+
+            {# Email #}
+            <a href="mailto:{{ contact_email }}" class="about-contact__item">
+                <span class="about-contact__icon">✉️</span>
+                <div>
+                    <div class="about-contact__label">Email</div>
+                    <div class="about-contact__value">{{ contact_email }}</div>
+                </div>
+            </a>
+
+            {# Телефон #}
+            <a href="tel:{{ contact_phone }}" class="about-contact__item">
+                <span class="about-contact__icon">📞</span>
+                <div>
+                    <div class="about-contact__label">Телефон</div>
+                    <div class="about-contact__value">{{ contact_phone }}</div>
+                </div>
+            </a>
+
+            {# Графік роботи #}
+            <div class="about-contact__item">
+                <span class="about-contact__icon">🕐</span>
+                <div>
+                    <div class="about-contact__label">Графік роботи</div>
+                    <div class="about-contact__value">Пн-Пт: 9:00-18:00</div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

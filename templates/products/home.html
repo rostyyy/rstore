@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Заголовок сторінки у вкладці браузера #}
+{% block title %}Головна - RStore{% endblock %}
+
+
+{% block content %}
+
+{# HERO СЕКЦІЯ ГОЛОВНОЇ СТОРІНКИ #}
+<section class="home-hero">
+
+    {# Логотип магазину #}
+    <h1>
+        <img src="{% static 'images/logo.png' %}"
+             class="logo-img"
+             alt="RStore Logo">
+    </h1>
+
+    {# Короткий опис платформи #}
+    <p>
+        Каталог електроніки зі швидким підбором за категоріями,
+        кольорами та конфігураціями.
+    </p>
+
+    {# Кнопка переходу до каталогу #}
+    <a href="{% url 'product_list' %}" class="btn btn--primary">
+        Відкрити каталог
+    </a>
+
+</section>
+
+
+{# БЛОК КАТЕГОРІЙ #}
+<section class="home-section">
+
+    <div class="section-head">
+        <h2>Категорії</h2>
+
+        {# Перехід у повний каталог #}
+        <a href="{% url 'product_list' %}" class="section-link">
+            Весь каталог
+        </a>
+    </div>
+
+    {# Швидкий доступ до категорій #}
+    <div class="category-quick-grid">
+
+        {% for category in categories %}
+
+        <a class="category-quick-card"
+           href="{% url 'product_list' %}?category={{ category.slug }}">
+
+            {# Іконка категорії #}
+            <span class="category-quick-icon">
+                {{ category.icon }}
+            </span>
+
+            {# Назва категорії #}
+            <span>{{ category.name }}</span>
+
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+
+{# РЕКОМЕНДОВАНІ ТОВАРИ #}
+<section class="home-section">
+
+    <div class="section-head">
+        <h2>Рекомендовані товари</h2>
+
+        {# Сортування за рейтингом #}
+        <a href="{% url 'product_list' %}?sort=rating" class="section-link">
+            За рейтингом
+        </a>
+    </div>
+
+    <div class="product-grid">
+
+        {% for product in recommended_products %}
+
+        <div class="product-card">
+
+            {# ЗОБРАЖЕННЯ ТОВАРУ #}
+            <a href="{% url 'product_detail' product.slug %}"
+               class="product-card__img-wrap">
+
+                {% with product.main_image as img %}
+
+                    {% if img %}
+                        <img src="{{ img.image.url }}"
+                             alt="{{ product.name }}"
+                             loading="lazy">
+                    {% else %}
+                        <div class="no-image">📷</div>
+                    {% endif %}
+
+                {% endwith %}
+
+            </a>
+
+
+            {# ІНФОРМАЦІЯ ПРО ТОВАР #}
+            <div class="product-card__body">
+
+                {# Бренд #}
+                <p class="product-card__brand">
+                    {{ product.brand.name }}
+                </p>
+
+                {# Назва товару #}
+                <a href="{% url 'product_detail' product.slug %}"
+                   class="product-card__name">
+                    {{ product.name }}
+                </a>
+
+                {# Ціна #}
+                <div class="product-card__price-row">
+                    <span class="product-card__price">
+                        {{ product.price }} ₴
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+
+{# НЕЩОДАВНО ПЕРЕГЛЯНУТІ #}
+{% if recently_viewed_products %}
+
+<section class="home-section">
+
+    <div class="section-head">
+        <h2>Нещодавно переглянуті</h2>
+    </div>
+
+    <div class="product-grid product-grid--small">
+
+        {% for product in recently_viewed_products %}
+
+        <div class="product-card">
+
+            {# Зображення товару #}
+            <a href="{% url 'product_detail' product.slug %}"
+               class="product-card__img-wrap">
+
+                {% with product.main_image as img %}
+
+                    {% if img %}
+                        <img src="{{ img.image.url }}"
+                             alt="{{ product.name }}"
+                             loading="lazy">
+                    {% else %}
+                        <div class="no-image">📷</div>
+                    {% endif %}
+
+                {% endwith %}
+
+            </a>
+
+
+            <div class="product-card__body">
+
+                {# Назва #}
+                <a href="{% url 'product_detail' product.slug %}"
+                   class="product-card__name">
+                    {{ product.name }}
+                </a>
+
+                {# Ціна #}
+                <span class="product-card__price">
+                    {{ product.price }} ₴
+                </span>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+{% endif %}
+
+{% endblock %}

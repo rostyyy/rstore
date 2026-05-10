@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Реєстрація - RStore{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h1 class="auth-title">Реєстрація</h1>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <label class="form-label">
+                {{ field.label }}
+                {{ field }}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                    <span class="form-error">{{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+            </label>
+            {% endfor %}
+            <button type="submit" class="btn btn--primary btn--full">Зареєструватися</button>
+        </form>
+        <p class="auth-link">Уже є аккаунт? <a href="{% url 'login' %}">Увійти</a></p>
+    </div>
+</div>
+{% endblock %}

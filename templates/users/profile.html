@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Профіль - RStore{% endblock %}
+
+{% block content %}
+<div class="profile-layout">
+    <div class="profile-sidebar">
+        <div class="profile-avatar">
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="Аватар">
+            {% else %}
+                <div class="avatar-placeholder">{{ user.username|first|upper }}</div>
+            {% endif %}
+        </div>
+        <h2 class="profile-name">{{ user.get_full_name|default:user.username }}</h2>
+        <p class="profile-email">{{ user.email }}</p>
+        <a href="{% url 'profile_edit' %}" class="btn btn--outline btn--small" style="margin-top:10px;">Редагувати профіль</a>
+    </div>
+
+    <div class="profile-main">
+        <section class="profile-section" id="orders-section">
+            <h3>Мої замовлення</h3>
+            {% if orders %}
+            <div class="orders-list">
+                {% for order in orders %}
+                <div class="order-card">
+                    <div class="order-card__header">
+                        <span class="order-card__id">Замовлення #{{ order.id }}</span>
+                        <span class="order-status order-status--{{ order.status }}">
+                            {{ order.get_status_display }}
+                        </span>
+                        <span class="order-card__date">{{ order.created_at|date:"d.m.Y" }}</span>
+                    </div>
+                    <div class="order-card__meta">
+                        <span><strong>Дата і час:</strong> {{ order.created_at|date:"d.m.Y H:i" }}</span>
+                        <span><strong>Адреса доставки:</strong> {{ order.address|default:"Не вказано" }}</span>
+                    </div>
+                    <div class="order-card__meta">
+                        <span><strong>Позицій:</strong> {{ order.items.count }}</span>
+                    </div>
+                    <div class="order-card__total">Разом на замовлення: <strong>{{ order.total_price }} ₴</strong></div>
+                    <a href="{% url 'order_detail' order.id %}" class="btn btn--outline order-details-link">Детальніше про замовлення</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-text">У вас поки немає замовлень.</p>
+            {% endif %}
+        </section>
+
+        <section class="profile-section">
+            <h3>Вибране</h3>
+            {% if wishlist %}
+            <div class="product-grid product-grid--small">
+                {% for item in wishlist %}
+                <div class="product-card">
+                    <a href="{% url 'product_detail' item.product.slug %}" class="product-card__img-wrap">
+                        {% with item.display_image as img %}
+                            {% if img %}<img src="{{ img.image.url }}" alt="{{ item.product.name }}" loading="lazy">
+                            {% else %}<div class="no-image">📷</div>{% endif %}
+                        {% endwith %}
+                    </a>
+                    <div class="product-card__body">
+                        <a href="{% url 'product_detail' item.product.slug %}" class="product-card__name">
+                            {{ item.product.name }}
+                        </a>
+                        {% if item.color or item.memory %}
+                        <p class="cart-item__price">
+                            {% if item.color %}Колір: {{ item.color.name }}{% endif %}
+                            {% if item.color and item.memory %} · {% endif %}
+                            {% if item.memory %}Память: {{ item.memory.label }}{% endif %}
+                        </p>
+                        {% endif %}
+                        <span class="product-card__price">{{ item.product.price }} ₴</span>
+                        <a href="{% url 'wishlist_toggle' item.product.id %}?{% if item.color %}color_id={{ item.color.id }}&{% endif %}{% if item.memory %}memory_id={{ item.memory.id }}{% endif %}" class="btn btn--outline btn--full wishlist-remove-btn">
+                            Видалити
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-text">Вибране порожньо.</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

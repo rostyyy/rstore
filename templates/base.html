@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RStore{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+<header class="header">
+    <div class="container header__inner">
+        <a href="{% url 'home' %}" class="header__logo">
+            <img src="{% static 'images/logo.png' %}" alt="RStore" class="logo-img">
+        </a>
+
+        <a href="{% url 'product_list' %}" class="catalog-btn">
+            🛍️ Каталог
+        </a>
+
+        <form class="header__search" action="{% url 'product_list' %}" method="get">
+            <input type="text" name="q" placeholder="Пошук товарів..."
+                   value="{{ request.GET.q }}" class="search-input" autocomplete="off">
+            <button type="submit" class="search-btn" aria-label="Пошук">🔍</button>
+        </form>
+
+        <nav class="header__nav">
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}" class="nav-link">👤 {{ user.username }}</a>
+                <a href="{% url 'cart' %}" class="nav-link cart-link" aria-label="Кошик">
+                    🛒
+                    {% if user.cart.count %}
+                        <span class="cart-badge">{{ user.cart.count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'logout' %}" class="nav-link">Вийти</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link">Увійти</a>
+                <a href="{% url 'register' %}" class="btn btn--primary btn--small">Реєстрація</a>
+            {% endif %}
+            <button class="theme-toggle" id="theme-toggle-btn"
+                    onclick="toggleTheme()" title="Змінити тему" aria-label="Змінити тему">🌙</button>
+        </nav>
+    </div>
+</header>
+
+<main class="main-content">
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert--{{ message.tags }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="footer__inner">
+            <div class="footer__brand">
+                <div class="footer__logo">
+                    <img src="{% static 'images/logo.png' %}" class="logo-img" alt="RStore">
+                </div>
+                <p>Ваш надійний магазин електроніки — широкий вибір, швидка доставка, чесні ціни.</p>
+            </div>
+            <div class="footer__links">
+                <h4>Категорії</h4>
+                <a href="{% url 'product_list' %}?category=smartphones">Смартфони</a>
+                <a href="{% url 'product_list' %}?category=laptops">Ноутбуки</a>
+                <a href="{% url 'product_list' %}?category=headphones">Навушники</a>
+            </div>
+            <div class="footer__links">
+                <h4>Інформація</h4>
+                <a href="{% url 'about' %}">Про нас</a>
+            </div>
+        </div>
+        <p class="footer__copy">
+            © 2026
+            <img src="{% static 'images/logo.png' %}" class="logo-img" alt="RStore">.
+            Дипломна робота Ростівського Миколи Васильовича ІПЗ-22-1фмб.
+        </p>
+    </div>
+</footer>
+
+<button class="scroll-top" id="scroll-top" aria-label="Нагору" title="Нагору">↑</button>
+
+<script>
+// Theme
+const THEME_KEY = 'rstore-theme';
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    localStorage.setItem(THEME_KEY, next);
+}
+
+// Зберігаємо вибір теми при завантаженні сторінки
+(function () {
+    const saved = localStorage.getItem(THEME_KEY) ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(saved);
+})();
+
+// Scroll-to-top
+document.addEventListener('DOMContentLoaded', function () {
+    const scrollBtn = document.getElementById('scroll-top');
+    if (scrollBtn) {
+        window.addEventListener('scroll', function () {
+            scrollBtn.classList.toggle('visible', window.scrollY > 400);
+        }, { passive: true });
+        scrollBtn.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // Color dots
+    document.querySelectorAll('.color-dot').forEach(dot => {
+        dot.addEventListener('click', function () {
+            const card = this.closest('.product-card, form');
+            const dots = card ? card.querySelectorAll('.color-dot') : [this];
+            dots.forEach(d => d.classList.remove('active'));
+            this.classList.add('active');
+            const input = card ? card.querySelector('.selected-color') : null;
+            if (input) input.value = this.dataset.colorId;
+        });
+    });
+});
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
